@@ -9,7 +9,13 @@
     "lint": "next lint",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "marketing-os:upgrade": "tsx scripts/upgrade-to-marketing-os.ts",
+    "marketing-os:test": "tsx scripts/test-enhanced-captions.ts",
+    "seed:agents": "tsx prisma/seed-agent-personalities.ts",
+    "migrate:posts": "tsx prisma/migrate-post-status.ts"
   },
   "dependencies": {
     "next": "^14.2.0",
@@ -31,6 +37,7 @@
     "typescript": "^5",
     "autoprefixer": "^10.0.1",
     "postcss": "^8",
-    "tailwindcss": "^3.4.1"
+    "tailwindcss": "^3.4.1",
+    "tsx": "^4.7.0"
   }
 }

@@ -7,6 +7,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================================================
+// PRIORITY 2: AGENT PROFILES WITH PERSONALITY
+// ============================================================================
 model Agent {
   id          String   @id @default(cuid())
   createdAt   DateTime @default(now())
@@ -28,7 +31,18 @@ model Agent {
   // Posting preferences
   defaultPostingMode String   @default("company") // "company", "personal", "both"
   
-  posts       Post[]
+  // 🆕 PRIORITY 2: Agent Personality Preferences
+  // These customize how AI generates captions for this agent
+  tonePreference    String   @default("professional") // professional, casual, warm, luxury, energetic
+  emojiLevel        String   @default("moderate")     // none, minimal, moderate, enthusiastic
+  hashtagPack       String?                           // JSON array of preferred hashtags
+  platformPriority  String   @default("both")         // instagram, facebook, both
+  
+  // Agent signature style (e.g., "DM me for a viewing 📱" vs "Call to schedule 📞")
+  callToActionStyle String?
+  
+  posts             Post[]
+  contentMemories   ContentMemory[]
 }
 
 model BrandingSettings {
@@ -47,29 +61,39 @@ model BrandingSettings {
   tagline         String   @default("MAKE YOUR NEXT MOVE A LOCAL ONE")
 }
 
+// ============================================================================
+// PRIORITY 1: POST STATE MACHINE
+// ============================================================================
+// Post States: DRAFT, AI_GENERATED, APPROVED, SCHEDULED, POSTED, FAILED
+
 model Post {
   id          String   @id @default(cuid())
   createdAt   DateTime @default(now())
-  selectedImages String? // JSON array of selected image URLs for posting
   updatedAt   DateTime @updatedAt
   
   // Listing Details
   listingUrl  String
+  listingId   String?  // 🆕 External listing ID for tracking
   address     String
   price       String?
   bedrooms    String?
   bathrooms   String?
   sqft        String?
   description String?
+  propertyType String? // apartment, house, townhouse, etc.
+  suburb      String?  // 🆕 For location-based learning
+  priceRange  String?  // 🆕 e.g., "under_1m", "1m_3m", "3m_plus"
   
   // Images
-  propertyImages String  // JSON array of image URLs
-  coverImageUrl  String? // Canva cover image
+  propertyImages   String  // JSON array of image URLs
+  selectedImages   String? // JSON array of selected image URLs for posting
+  coverImageUrl    String? // Canva cover image
+  heroImageUrl     String? // 🆕 Featured/hero image from listing
   
   // AI Generated Content
-  captions    String   // JSON array of 3 caption options
-  selectedCaption String?
-  hashtags    String?
+  captions        String   // JSON array of caption variations
+  selectedCaption String?  // Final chosen caption
+  hashtags        String?
   
   // Agent Info
   agentId     String?
@@ -79,13 +103,138 @@ model Post {
   agentPhoto  String?
   colorTheme  String?
   
+  // 🆕 PRIORITY 1: Post State Machine
+  status          String @default("DRAFT") // DRAFT, AI_GENERATED, APPROVED, SCHEDULED, POSTED, FAILED
+  statusHistory   String?    // JSON: [{status, timestamp, user, note}]
+  failureReason   String?    // Why posting failed
+  retryCount      Int        @default(0)
+  
   // Post Management
-  status      String   @default("pending") // pending, approved, posted, scheduled
-  postedTo    String?  // "company", "personal", "both" - where it was posted
-  scheduledFor DateTime?
-  postedAt    DateTime?
-  metaPostId  String?
+  postedTo        String?    // "company", "personal", "both"
+  scheduledFor    DateTime?
+  postedAt        DateTime?
+  metaPostId      String?
+  instagramPostId String?
+  facebookPostId  String?
+  
+  // 🆕 LONG TERM: A/B Testing
+  abTestVariant   String?    // 'A', 'B', or null
+  abTestGroup     String?    // Group ID for comparing variants
+  
+  // 🆕 LONG TERM: Engagement Tracking
+  engagementStats String?    // JSON: {likes, comments, shares, reach, clicks}
+  boosted         Boolean    @default(false)
+  boostSpent      Float?     // Ad spend if boosted
+  
+  // 🆕 WhatsApp Approval
+  whatsappApprovalSent Boolean  @default(false)
+  whatsappApprovedAt   DateTime?
+  whatsappApprovedBy   String?
   
   // Metadata
   metadata    String?  // JSON for any additional data
+  
+  // Relations
+  contentMemory ContentMemory?
+}
+
+// ============================================================================
+// PRIORITY 3: CONTENT MEMORY & LEARNING
+// ============================================================================
+model ContentMemory {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Link to post
+  postId      String   @unique
+  post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  // Link to agent (for agent-specific learning)
+  agentId     String?
+  agent       Agent?   @relation(fields: [agentId], references: [id])
+  
+  // Property Context
+  listingId   String?  // External listing ID
+  suburb      String?
+  propertyType String? // apartment, house, townhouse
+  priceRange  String?  // Categorized price range
+  
+  // Performance Data
+  engagementScore Float   @default(0) // Calculated metric combining all engagement
+  likes           Int     @default(0)
+  comments        Int     @default(0)
+  shares          Int     @default(0)
+  reach           Int?
+  clicks          Int?
+  inquiries       Int     @default(0) // Manual tracking of actual leads
+  
+  // Content Analysis
+  hookStyle       String? // e.g., "question", "lifestyle", "investment", "urgency"
+  captionLength   Int?    // Character count
+  emojiCount      Int?
+  hashtagCount    Int?
+  
+  // Learning Insights (updated periodically by AI)
+  performanceNote String? // e.g., "Lifestyle hook outperformed for this suburb"
+  
+  @@index([suburb, priceRange, propertyType])
+  @@index([engagementScore])
+}
+
+// ============================================================================
+// LONG TERM: LEARNING INSIGHTS
+// ============================================================================
+// Aggregated learning patterns across posts
+model InsightPattern {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Pattern Context
+  suburb      String   @default("")
+  priceRange  String   @default("")
+  propertyType String  @default("")
+  hookStyle   String   @default("")
+  
+  // Performance Metrics
+  avgEngagementScore  Float
+  sampleSize          Int     // How many posts in this pattern
+  bestPerformingExample String? // Post ID
+  
+  // AI Recommendation
+  recommendation String // e.g., "For Ballito apartments under R3.5m, use lifestyle + investment hooks"
+  confidence     Float  @default(0) // 0-1, based on sample size and consistency
+  
+  @@unique([suburb, priceRange, propertyType, hookStyle])
+  @@index([suburb, priceRange, propertyType])
+}
+
+// ============================================================================
+// LONG TERM: A/B TEST EXPERIMENTS
+// ============================================================================
+model ABTest {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  name        String   // e.g., "Emoji-heavy vs Minimal - Ballito"
+  description String?
+  
+  // Test Parameters
+  testType    String   // caption_style, hook_type, emoji_level, hashtag_strategy
+  variantA    String   // Description or config of variant A
+  variantB    String   // Description or config of variant B
+  
+  // Test Status
+  active      Boolean  @default(true)
+  startDate   DateTime @default(now())
+  endDate     DateTime?
+  
+  // Results
+  winningVariant String? // 'A', 'B', or 'TIE'
+  variantAEngagement Float?
+  variantBEngagement Float?
+  
+  conclusion  String?  // Summary of learnings
 }

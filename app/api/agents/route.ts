@@ -20,7 +20,17 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, phone, email, headshotUrl } = await request.json();
+    const {
+      name,
+      phone,
+      email,
+      headshotUrl,
+      tonePreference,
+      emojiLevel,
+      hashtagPack,
+      platformPriority,
+      callToActionStyle,
+    } = await request.json();
 
     if (!name || !phone) {
       return NextResponse.json(
@@ -35,6 +45,11 @@ export async function POST(request: NextRequest) {
         phone,
         email,
         headshotUrl,
+        tonePreference: tonePreference || 'professional',
+        emojiLevel: emojiLevel || 'moderate',
+        hashtagPack: hashtagPack ? JSON.stringify(hashtagPack) : null,
+        platformPriority: platformPriority || 'both',
+        callToActionStyle: callToActionStyle || null,
       },
     });
 
