@@ -1,21 +1,22 @@
-{
-  "apps": [
+module.exports = {
+  apps: [
     {
-      "name": "real-estate-auto-post",
-      "script": "npm",
-      "args": "start",
-      "cwd": "./",
-      "instances": 1,
-      "autorestart": true,
-      "watch": false,
-      "max_memory_restart": "500M",
-      "env": {
-        "NODE_ENV": "production",
-        "PORT": 3000
+      name: 'real-estate-posts',
+      script: 'npm',
+      args: 'start',
+      cwd: '/var/www/real-estate-auto-post',
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '1G',
+      env: {
+        NODE_ENV: 'production',
+        PORT: 3000,
       },
-      "error_file": "./logs/pm2-error.log",
-      "out_file": "./logs/pm2-out.log",
-      "log_date_format": "YYYY-MM-DD HH:mm:ss Z"
-    }
-  ]
-}
+      error_file: '/var/www/real-estate-auto-post/logs/error.log',
+      out_file: '/var/www/real-estate-auto-post/logs/output.log',
+      log_file: '/var/www/real-estate-auto-post/logs/combined.log',
+      time: true,
+    },
+  ],
+};
