@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
           sqft: listingData.sqft,
           agentName: agent?.name,
           agentPhone: agent?.phone,
-          agentHeadshotUrl: agent?.headshotUrl,
+          agentHeadshotUrl: agent?.headshotUrl || undefined,
           branding: branding,
         });
 
