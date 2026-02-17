@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Agent {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  name        String
+  phone       String
+  email       String?
+  headshotUrl String?
+  active      Boolean  @default(true)
+  
+  // Personal social media tokens (OAuth)
+  facebookToken     String?   // Personal Facebook access token
+  facebookPageId    String?   // Personal Facebook Page ID (if they have one)
+  instagramToken    String?   // Personal Instagram access token  
+  instagramUserId   String?   // Personal Instagram Business Account ID
+  tokenExpires      DateTime? // When tokens expire
+  
+  // Posting preferences
+  defaultPostingMode String   @default("company") // "company", "personal", "both"
+  
+  posts       Post[]
+}
+
+model BrandingSettings {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  companyName     String   @default("Local Real Estate SA")
+  logoUrl         String?
+  forSaleGraphic  String?
+  primaryColor    String   @default("#f9b32d") // Brand Orange (Pantone 1235 C)
+  secondaryColor  String   @default("#003d51") // Brand Dark Teal (Pantone 3035 C)
+  accentColor1    String   @default("#ea4b8b") // Brand Pink (Pantone 1915 C)
+  accentColor2    String   @default("#5dc2e8") // Brand Cyan (Pantone 0821 C)
+  accentColor3    String   @default("#92c679") // Brand Green (Pantone 7487 C)
+  tagline         String   @default("MAKE YOUR NEXT MOVE A LOCAL ONE")
+}
+
+model Post {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  selectedImages String? // JSON array of selected image URLs for posting
+  updatedAt   DateTime @updatedAt
+  
+  // Listing Details
+  listingUrl  String
+  address     String
+  price       String?
+  bedrooms    String?
+  bathrooms   String?
+  sqft        String?
+  description String?
+  
+  // Images
+  propertyImages String  // JSON array of image URLs
+  coverImageUrl  String? // Canva cover image
+  
+  // AI Generated Content
+  captions    String   // JSON array of 3 caption options
+  selectedCaption String?
+  hashtags    String?
+  
+  // Agent Info
+  agentId     String?
+  agent       Agent?   @relation(fields: [agentId], references: [id])
+  agentName   String?
+  agentPhone  String?
+  agentPhoto  String?
+  colorTheme  String?
+  
+  // Post Management
+  status      String   @default("pending") // pending, approved, posted, scheduled
+  postedTo    String?  // "company", "personal", "both" - where it was posted
+  scheduledFor DateTime?
+  postedAt    DateTime?
+  metaPostId  String?
+  
+  // Metadata
+  metadata    String?  // JSON for any additional data
+}
