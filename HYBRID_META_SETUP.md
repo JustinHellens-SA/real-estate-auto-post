@@ -1,5 +1,7 @@
 # Hybrid Meta Posting Setup Guide
 
+**⚠️ Updated for 2026:** Meta now requires all access tokens to be generated through the [Meta for Developers](https://developers.facebook.com/apps) platform. You must create a Meta App to get tokens - the old Business Suite method no longer works.
+
 This guide will help you configure the application to support **both** company account posting AND individual agent personal account posting.
 
 ## 🎯 What You'll Achieve
@@ -20,73 +22,22 @@ After setup, agents can choose to post to:
 
 ---
 
-## Part 1: Company Account Setup (Required)
+## Part 1: Create Meta App (Required)
 
-### Step 1: Get Company Page Access Token
-
-1. Go to [Meta Business Suite](https://business.facebook.com)
-2. Select your **Local Real Estate SA** Page
-3. Go to **Settings** → **Business Assets** → **Pages**
-4. Click on your Page
-5. Scroll to **Page Access Tokens**
-6. Click **Generate Token**
-7. Select permissions:
-   - `pages_manage_posts`
-   - `pages_read_engagement`
-   - `instagram_basic`
-   - `instagram_content_publish`
-8. Copy the token (60-day token - see below for permanent)
-
-### Step 2: Make Token Permanent (Optional but Recommended)
-
-Short-lived tokens expire in 60 days. To create a never-expiring token:
-
-1. Go to [Graph API Explorer](https://developers.facebook.com/tools/explorer/)
-2. Select your App (or create one - see Part 2)
-3. Click **Get Token** → **Get Page Access Token**
-4. Select your Page
-5. In the field, you'll see your token
-6. Copy the Page Access Token
-7. Use this tool to extend it: [Access Token Debugger](https://developers.facebook.com/tools/debug/accesstoken/)
-
-### Step 3: Get Page and Instagram IDs
-
-**Facebook Page ID:**
-1. Go to your Facebook Page
-2. Click **About**
-3. Scroll to **Page ID** or look in the URL: `facebook.com/[PAGE_ID]`
-
-**Instagram Business Account ID:**
-1. Go to [Graph API Explorer](https://developers.facebook.com/tools/explorer/)
-2. Enter: `me/accounts?fields=instagram_business_account`
-3. Click **Submit**
-4. Find your Page, copy the `instagram_business_account.id`
-
-### Step 4: Update .env File
-
-```env
-META_PAGE_ACCESS_TOKEN=YOUR_COMPANY_PAGE_TOKEN_HERE
-META_PAGE_ID=YOUR_COMPANY_PAGE_ID_HERE
-META_INSTAGRAM_ACCOUNT_ID=YOUR_COMPANY_IG_ID_HERE
-```
-
-✅ **Company posting is now configured!** All agents can immediately post to the company accounts.
-
----
-
-## Part 2: Agent Personal Accounts Setup (Optional)
-
-This allows individual agents to connect their own Facebook/Instagram accounts.
+⚠️ **Important:** Meta now requires all tokens to be generated through the Meta for Developers platform. You must create an app first.
 
 ### Step 1: Create Meta App
 
 1. Go to [Meta for Developers](https://developers.facebook.com/apps)
-2. Click **Create App**
-3. Select **Business** as app type
-4. Fill in:
+2. **Sign in with your personal Facebook account** (this is normal - apps are always created under personal accounts)
+3. Click **Create App**
+4. Select **Business** as app type
+5. Fill in:
    - **App Name**: "Real Estate Auto Post" (or your choice)
    - **Contact Email**: Your email
-5. Click **Create App**
+6. Click **Create App**
+
+**Note:** Even though you're using your personal Facebook account to create the app, the app itself will be used to manage business pages and post content. This is how Meta's system works.
 
 ### Step 2: Add Facebook Login Product
 
@@ -118,7 +69,16 @@ This allows individual agents to connect their own Facebook/Instagram accounts.
    - `localhost` (development)
    - `oneluckywave.co.za` (production)
 
-### Step 5: Request Permissions (Important!)
+### Step 5: Add Your Facebook Page to the App
+
+1. Go to **App Settings** → **Basic**
+2. Scroll to **App Roles** → Click **Add People**
+3. Add yourself as an **Administrator**
+4. Then go to [Graph API Explorer](https://developers.facebook.com/tools/explorer/)
+5. Select your app from the dropdown (top right)
+6. Log in with your Facebook account that manages **Local Real Estate SA** Page
+
+### Step 6: Request Permissions (Important!)
 
 Your app needs these permissions to post:
 
@@ -126,43 +86,107 @@ Your app needs these permissions to post:
 2. Request these permissions:
    - ✅ `pages_manage_posts` - Post to Facebook Pages
    - ✅ `pages_read_engagement` - Read Page data
+   - ✅ `pages_show_list` - List pages
    - ✅ `instagram_basic` - Access Instagram account
    - ✅ `instagram_content_publish` - Post to Instagram
    - ✅ `business_management` - Manage business assets
 
 3. For **Development Mode** (testing):
    - Add your agents as Test Users or Developers
-   - Permissions work without approval
+   - Permissions work without approval for testing
 
 4. For **Production** (live app):
    - Submit for App Review (Meta will review your app)
    - Provide use case: "Real estate agents post property listings to their Facebook & Instagram"
    - Can take 3-7 days for approval
 
-### Step 6: Make App Live (When Ready)
+---
 
-1. Go to **Settings** → **Basic**
-2. Toggle **App Mode** from **Development** to **Live**
-3. Only do this AFTER permissions are approved
+## Part 2: Generate Company Page Access Token (Required)
 
-### Step 7: Update .env File
+Now that you have a Meta App, generate the company page token through the developer tools.
+
+### Step 1: Generate Page Access Token via Graph API Explorer
+
+1. Go to [Graph API Explorer](https://developers.facebook.com/tools/explorer/)
+2. Select **Your App** from the dropdown (top right)
+3. Click **Generate Access Token** or **Get Token** → **Get User Access Token**
+4. Select these permissions:
+   - `pages_manage_posts`
+   - `pages_read_engagement`
+   - `pages_show_list`
+   - `instagram_basic`
+   - `instagram_content_publish`
+5. Click **Generate Access Token**
+6. Approve the permissions in the popup
+
+### Step 2: Get Page Access Token
+
+1. Still in Graph API Explorer
+2. In the query field, enter: `me/accounts`
+3. Click **Submit**
+4. Find your **Local Real Estate SA** page in the results
+5. Copy the `access_token` for that page (this is your Page Access Token)
+6. Also copy the `id` (this is your Page ID)
+
+### Step 3: Get Instagram Business Account ID
+
+1. In Graph API Explorer
+2. Replace the query with: `me/accounts?fields=instagram_business_account`
+3. Click **Submit**
+4. Find your page, copy the `instagram_business_account.id`
+
+### Step 4: (Optional) Make Token Long-Lived
+
+Page tokens from Graph API Explorer are short-lived (60 days). To extend:
+
+1. Go to [Access Token Debugger](https://developers.facebook.com/tools/debug/accesstoken/)
+2. Paste your Page Access Token
+3. Click **Debug**
+4. Check expiration date
+5. To extend, use this Graph API call in Explorer:
+   ```
+   oauth/access_token?grant_type=fb_exchange_token&client_id=YOUR_APP_ID&client_secret=YOUR_APP_SECRET&fb_exchange_token=YOUR_SHORT_LIVED_TOKEN
+   ```
+6. This gives you a token valid for 60 days (can be refreshed)
+
+### Step 5: Update .env File
 
 ```env
+# Meta App Credentials (Required for all posting)
 META_APP_ID=YOUR_APP_ID_HERE
 META_APP_SECRET=YOUR_APP_SECRET_HERE
+
+# Company Meta Accounts (Required - everyone posts to this)
+META_PAGE_ACCESS_TOKEN=YOUR_COMPANY_PAGE_TOKEN_HERE
+META_PAGE_ID=YOUR_COMPANY_PAGE_ID_HERE
+META_INSTAGRAM_ACCOUNT_ID=YOUR_COMPANY_IG_ID_HERE
+
+# Base URL
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 ```
 
-For production:
-```env
-NEXT_PUBLIC_BASE_URL=https://oneluckywave.co.za
-```
+✅ **Company posting is now configured!** All agents can immediately post to the company accounts.
+
+---
+
+## Part 3: Enable Agent Personal Accounts (Optional)
+
+This allows individual agents to connect their own Facebook/Instagram accounts. The Meta App from Part 1 enables this feature.
+
+### Step 1: Make App Live (When Ready)
+
+1. Go to **Settings** → **Basic**
+2. Toggle **App Mode** from **Development** to **Live**
+3. Only do this AFTER permissions are approved (from Part 1, Step 6)
+
+**Note:** Your Meta App is already configured from Part 1. No additional setup needed here.
 
 ✅ **Agent personal account posting is now enabled!**
 
 ---
 
-## Part 3: Agent Connection Process
+## Part 4: Agent Connection Process
 
 Each agent who wants to post to their personal account:
 
@@ -183,7 +207,7 @@ Each agent who wants to post to their personal account:
 
 ---
 
-## Part 4: Configure OpenAI (For AI Captions)
+## Part 5: Configure OpenAI (For AI Captions)
 
 1. Go to [OpenAI Platform](https://platform.openai.com/)
 2. Create account / Sign in
@@ -203,14 +227,14 @@ Each agent who wants to post to their personal account:
 # OpenAI for AI caption generation
 OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxxxxxxxxxx
 
+# Meta App Credentials (Required for ALL posting - company and personal)
+META_APP_ID=1234567890123456
+META_APP_SECRET=abcdef1234567890abcdef1234567890
+
 # Company Meta Accounts (Required - everyone uses this)
 META_PAGE_ACCESS_TOKEN=EAAxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 META_PAGE_ID=123456789012345
 META_INSTAGRAM_ACCOUNT_ID=17841234567890123
-
-# Meta App for Agent OAuth (Optional - for personal posting)
-META_APP_ID=1234567890123456
-META_APP_SECRET=abcdef1234567890abcdef1234567890
 
 # Base URL (change for production)
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
@@ -218,6 +242,11 @@ NEXT_PUBLIC_BASE_URL=http://localhost:3000
 # Database
 DATABASE_URL="file:./dev.db"
 ```
+
+**Important Notes:**
+- `META_APP_ID` and `META_APP_SECRET` are required for both company and personal posting
+- All values are obtained through [Meta for Developers](https://developers.facebook.com/apps)
+- Tokens from Graph API Explorer need to be refreshed every 60 days
 
 ---
 
@@ -230,7 +259,7 @@ DATABASE_URL="file:./dev.db"
 4. Check Local Real Estate SA's Facebook Page & Instagram
 
 ### Test Personal Posting:
-1. Agent connects their Facebook (see Part 3)
+1. Agent connects their Facebook (see Part 4)
 2. Create a post
 3. Select posting mode: **My Personal Account**
 4. Click post
@@ -247,7 +276,8 @@ DATABASE_URL="file:./dev.db"
 
 ### "Token expired" error
 - Company token expires after 60 days
-- Re-generate token or create permanent token (Step 2 above)
+- Re-generate token through Graph API Explorer (see Part 2)
+- Extend token lifetime using the long-lived token process (Part 2, Step 4)
 - Agents must reconnect every 60 days (automatic prompt)
 
 ### "No Instagram Business Account" error  
@@ -267,7 +297,13 @@ DATABASE_URL="file:./dev.db"
 
 ## 🎉 You're All Set!
 
-**Company posting:** Works immediately after Part 1
-**Personal posting:** Agent feature - optional, enhanced reach
+**Company posting:** Works after completing Part 1 & Part 2
+**Personal posting:** Enable in Part 3, agents connect in Part 4 - optional, enhanced reach
+
+**Quick Setup Summary:**
+1. Create Meta App (Part 1) - Required
+2. Generate company tokens via Graph API Explorer (Part 2) - Required  
+3. Enable personal accounts (Part 3) - Optional
+4. Agents connect their accounts (Part 4) - Optional per agent
 
 Questions? Check the [Meta for Developers](https://developers.facebook.com/docs/) documentation.
